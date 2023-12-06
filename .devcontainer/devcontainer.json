@@ -1,0 +1,18 @@
+{
+  "image": "mcr.microsoft.com/devcontainers/universal:2",
+  "forwardPorts": [
+    3000
+  ],
+  "features": {
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "766b.go-outliner",
+        "golang.go",
+        "premparihar.gotestexplorer",
+        "eamodio.gitlens"
+      ]
+    }
+  }
+}
