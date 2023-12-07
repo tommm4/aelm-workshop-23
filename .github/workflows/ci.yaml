@@ -1,0 +1,65 @@
+name: Golang build
+
+on:
+  # https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#filter-pattern-cheat-sheet
+  push:
+    branches:
+      - '**'
+
+# These variables can be reused in the build steps
+env:
+  DOCKER_REPOSITORY: tourna
+  DOCKER_IMAGE: aelm-workshop-23
+  GOLANG_VERSION: 1.21.x
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    # Code Build steps
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Go ${{ env.GOLANG_VERSION }}
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ env.GOLANG_VERSION }}
+      - name: Build
+        run: go build -o ../bin/workshop -v ./...
+        working-directory: workshop-service
+      - name: Upload /bin folder as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: workshop
+          path: bin/
+          retention-days: 1
+  docker:
+    # Dependency on previous step to complete
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: workshop
+          path: ./bin
+      - name: Display structure of downloaded files
+        run: ls -R
+        working-directory: .
+      # Docker container steps
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Extract metadata (tags, labels) for Docker
+        uses: docker/metadata-action@v4
+        id: meta
+        with:
+          images: ${{env.DOCKER_REPOSITORY}}/${{env.DOCKER_IMAGE}}
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
